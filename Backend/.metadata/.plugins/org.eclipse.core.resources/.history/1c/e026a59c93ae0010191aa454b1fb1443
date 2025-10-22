@@ -1,0 +1,5 @@
+package dev.roadmap.config;
+
+public class SecurityConfig {
+
+}

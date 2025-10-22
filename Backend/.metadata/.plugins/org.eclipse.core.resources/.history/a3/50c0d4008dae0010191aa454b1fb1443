@@ -1,0 +1,5 @@
+package dev.roadmap.repo;
+
+public interface UserRepository {
+
+}

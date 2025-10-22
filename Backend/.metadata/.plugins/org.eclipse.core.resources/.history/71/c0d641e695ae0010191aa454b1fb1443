@@ -1,0 +1,55 @@
+package dev.roadmap.service;
+
+import dev.roadmap.dto.AuthRequest;
+import dev.roadmap.dto.AuthResponse;
+import dev.roadmap.dto.RegisterRequest;
+import dev.roadmap.model.Role;
+import dev.roadmap.model.RoleName;
+import dev.roadmap.model.User;
+import dev.roadmap.repo.RoleRepository;
+import dev.roadmap.repo.UserRepository;
+import dev.roadmap.security.JwtService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Set;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+  private final UserRepository userRepository = null;
+  private final RoleRepository roleRepository = null;
+  private final PasswordEncoder passwordEncoder = null;
+  private final AuthenticationManager authenticationManager = null;
+  private final JwtService jwtService = null;
+
+  public void register(RegisterRequest req) {
+    if (userRepository.existsByEmail(req.email())) {
+      throw new IllegalArgumentException("Email already registered");
+    }
+    Role userRole = roleRepository.findByName(RoleName.USER)
+        .orElseThrow(() -> new IllegalStateException("USER role missing"));
+    User user = ((Object) User.builder())
+        .fullName(req.fullName())
+        .email(req.email())
+        .password(passwordEncoder.encode(req.password()))
+        .roles(Set.of(userRole))
+        .build();
+    userRepository.save(user);
+  }
+
+  public AuthResponse login(AuthRequest req) {
+    authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(req.email(), req.password())
+    );
+    var user = userRepository.findByEmail(req.email()).orElseThrow();
+    var claims = new HashMap<String,Object>();
+    claims.put("roles", user.getAuthorities().stream().map(a -> a.getAuthority()).toList());
+    String token = jwtService.generateToken(user.getEmail(), claims);
+    return new AuthResponse(token);
+  }
+}
